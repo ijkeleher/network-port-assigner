@@ -1,0 +1,24 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>PortSelector</title>
+</head>
+
+<body>
+    <form action="http://localhost:8080/addcard" method="post">
+        <p>Please input your student number and port number choice (61000 - 61999): </p>
+        <hr>
+        <input type="text" name="student" placeholder="Student Number" >
+        <br>
+        <br>
+        <input type="number" name="port1" placeholder="Port Number 1" min="61000" max="61999">
+        <br>
+        <input type="number" name="port2" placeholder="Port Number 2" min="61000" max="61999">
+        <br>
+        <hr>
+        <input type="submit" value="Add Entry">
+    </form>
+</body>
+
+</html>
