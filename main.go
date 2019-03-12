@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/smtp"
 	"os"
 	"sort"
 )
@@ -34,6 +35,28 @@ func open(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func send(body string) {
+	from := "removed@removed.com"
+	pass := "removed"
+	to := "fengling.han@rmit.edu.au"
+
+	msg := "From: " + from + "\n" +
+		"To: " + to + "\n" +
+		"Subject: Student num and Port num\n\n" +
+		body
+
+	err := smtp.SendMail("smtp.gmail.com:587",
+		smtp.PlainAuth("", from, pass, "smtp.gmail.com"),
+		from, []string{to}, []byte(msg))
+
+	if err != nil {
+		log.Printf("smtp error: %s", err)
+		return
+	}
+
+	log.Print("sent, visit http://foobarbazz.mailinator.com")
+}
+
 func addcard(w http.ResponseWriter, r *http.Request) {
 	//create portlist file to store data
 
@@ -45,6 +68,10 @@ func addcard(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("port1: " + card.Port1)
 	fmt.Println("port2: " + card.Port2)
+
+	//booleans for port 1 and 2 for email
+	var port1bool = false
+	var port2bool = false
 
 	// card := new(Card)
 	// card.Student = "John"
@@ -79,11 +106,13 @@ func addcard(w http.ResponseWriter, r *http.Request) {
 	if i < len(lines) && lines[i] != card.Port1 {
 		fmt.Println(i < len(lines) && lines[i] == card.Port1)
 
+		//write to file
 		if _, err := fw.Write([]byte("\n" + card.Port1)); err != nil {
 			log.Fatal(err)
 		}
-
 		println("Entry added\n")
+		port1bool = true
+
 	}
 
 	//search for port 2
@@ -93,12 +122,17 @@ func addcard(w http.ResponseWriter, r *http.Request) {
 	if i < len(lines) && lines[i] != card.Port2 {
 		fmt.Println(i < len(lines) && lines[i] == card.Port2)
 
+		//write to file
 		if _, err := fw.Write([]byte("\n" + card.Port2)); err != nil {
 			log.Fatal(err)
 		}
-
 		println("Entry added\n")
+		port2bool = true
 
+	}
+
+	if (port1bool == true) && (port2bool == true) {
+		send("New entry:" + "\n" + card.Student + "\n" + card.Port1 + "\n" + card.Port2)
 	}
 
 }
