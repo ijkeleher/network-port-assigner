@@ -18,49 +18,47 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-//Card contains the inputted data
+//Card contains the inputted data for a student
 type Card struct {
 	Student string `json:"Student"`
 	Port1   string `json:"Port1"`
 	Port2   string `json:"Port2"`
 }
 
-//Cards struct for array of cards
+//Cards struct for an array of cards
 type Cards struct {
 	Card []Card `json:"Card"`
 }
 
-func open(w http.ResponseWriter, r *http.Request) {
-
-	// we unmarshal our byteArray which contains our
-	// jsonFile's content into 'cards' which we defined above
-
-	// o := Card{Student: "st18u138u", Port1: "8080", Port2: "3000"}
-
-	// spew.Dump(cards)
-
-	fmt.Println("Done printing entries")
-
-}
+//Credentials function reads in your gmail credentials into console
+//You MUST have enabled "less secure app access" for this to work
+//https://myaccount.google.com/lesssecureapps?utm_source=google-account&utm_medium=web
 
 func credentials() (string, string, error) {
+
+	//read login detals into console
 	reader := bufio.NewReader(os.Stdin)
 
-	fmt.Print("Enter Username: ")
+	fmt.Println("make sure to enable less secure app access in gmail")
+
+	fmt.Print("Enter Gmail Username: ")
 	username, _ := reader.ReadString('\n')
 
-	fmt.Print("Enter Password: ")
+	fmt.Print("Enter Gmail Password: ")
 	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
 	if err != nil {
 		return "", "", err
 	}
 	password := string(bytePassword)
 
+	//trim input and return to send functon
 	return strings.TrimSpace(username), strings.TrimSpace(password), nil
 }
 
+//send function takes the validated ports 1, 2 and the student number
 func send(p1 string, p2 string, student string) {
 
+	//create an email object
 	e := &email.Email{
 		To:      []string{"s3646416@student.rmit.edu.au"},
 		From:    "Inci Keleher <inci.keleher@gmail.com>",
@@ -68,20 +66,21 @@ func send(p1 string, p2 string, student string) {
 		Text:    []byte("ports: " + p1 + " and " + p2 + "assigned to " + student),
 		Headers: textproto.MIMEHeader{},
 	}
-
+	//grab the username and password from the server administrator (you!)
 	username, password, err := credentials()
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println("\nsending mail ...")
-	if !strings.HasSuffix(username, "@gmail.com") {
-		username += "@gmail.com"
-	}
+
+	//send the email using gmail smtp and print error if something goes wrong
 	err = e.Send("smtp.gmail.com:587", smtp.PlainAuth("", username, password, "smtp.gmail.com"))
 	if err != nil {
 		panic(err)
 	}
+
+	return
 
 }
 
@@ -94,6 +93,7 @@ func addcard(w http.ResponseWriter, r *http.Request) {
 	card.Port1 = r.FormValue("port1")
 	card.Port2 = r.FormValue("port2")
 
+	//print parts for validation (server admin only)
 	fmt.Println("port1: " + card.Port1)
 	fmt.Println("port2: " + card.Port2)
 
@@ -109,7 +109,7 @@ func addcard(w http.ResponseWriter, r *http.Request) {
 	//open file for writing
 	fw, err := os.OpenFile("ports.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
-	//open file for scanner
+	//open file for scanner to check if ports are taken
 	file, err := os.Open("ports.txt")
 	if err != nil {
 		log.Fatal(err)
@@ -118,6 +118,7 @@ func addcard(w http.ResponseWriter, r *http.Request) {
 
 	scanner := bufio.NewScanner(file)
 
+	//lines will contain one entry for every port (which is on it's own line)
 	var lines []string
 
 	for scanner.Scan() {
@@ -172,28 +173,9 @@ func addcard(w http.ResponseWriter, r *http.Request) {
 func main() {
 	fmt.Println("Welcome to PortSelector")
 
-	//print array for check
-	// for _, line := range lines {
-
-	// 	if line != card.Port1 {
-
-	// 		if _, err := fw.Write([]byte("\n" + card.Port1)); err != nil {
-	// 			log.Fatal(err)
-	// 		}
-
-	// 		println("Entry added\n")
-	// 		return
-	// 	}
-
-	// 	if line == card.Port1 {
-	// 		fmt.Println(line + " is taken")
-	// 		return
-	// 	}
-
-	// }
+	//addcard is the endpoint that will be called by the index.html form
 
 	http.HandleFunc("/addcard", addcard)
-	http.HandleFunc("/open", open)
 	http.ListenAndServe(":8080", nil)
 
 }
