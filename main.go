@@ -8,6 +8,14 @@ import (
 	"net/smtp"
 	"os"
 	"sort"
+	"syscall"
+
+	"net/textproto"
+
+	"strings"
+
+	"github.com/jordan-wright/email"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 //Card contains the inputted data
@@ -35,26 +43,46 @@ func open(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func send(body string) {
-	from := "removed@removed.com"
-	pass := "removed"
-	to := "fengling.han@rmit.edu.au"
+func credentials() (string, string, error) {
+	reader := bufio.NewReader(os.Stdin)
 
-	msg := "From: " + from + "\n" +
-		"To: " + to + "\n" +
-		"Subject: Student num and Port num\n\n" +
-		body
+	fmt.Print("Enter Username: ")
+	username, _ := reader.ReadString('\n')
 
-	err := smtp.SendMail("smtp.gmail.com:587",
-		smtp.PlainAuth("", from, pass, "smtp.gmail.com"),
-		from, []string{to}, []byte(msg))
-
+	fmt.Print("Enter Password: ")
+	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
 	if err != nil {
-		log.Printf("smtp error: %s", err)
-		return
+		return "", "", err
+	}
+	password := string(bytePassword)
+
+	return strings.TrimSpace(username), strings.TrimSpace(password), nil
+}
+
+func send(p1 string, p2 string, student string) {
+
+	e := &email.Email{
+		To:      []string{"s3646416@student.rmit.edu.au"},
+		From:    "Inci Keleher <inci.keleher@gmail.com>",
+		Subject: "Test",
+		Text:    []byte("ports: " + p1 + " and " + p2 + "assigned to " + student),
+		Headers: textproto.MIMEHeader{},
 	}
 
-	log.Print("sent, visit http://foobarbazz.mailinator.com")
+	username, password, err := credentials()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("\nsending mail ...")
+	if !strings.HasSuffix(username, "@gmail.com") {
+		username += "@gmail.com"
+	}
+	err = e.Send("smtp.gmail.com:587", smtp.PlainAuth("", username, password, "smtp.gmail.com"))
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 func addcard(w http.ResponseWriter, r *http.Request) {
@@ -113,6 +141,8 @@ func addcard(w http.ResponseWriter, r *http.Request) {
 		println("Entry added\n")
 		port1bool = true
 
+	} else {
+		fmt.Fprint(w, "ERROR: PORT 1 TAKEN, PLEASE TRY AGAIN")
 	}
 
 	//search for port 2
@@ -129,10 +159,12 @@ func addcard(w http.ResponseWriter, r *http.Request) {
 		println("Entry added\n")
 		port2bool = true
 
+	} else {
+		fmt.Fprint(w, "ERROR: PORT 2 TAKEN, PLEASE TRY AGAIN")
 	}
 
 	if (port1bool == true) && (port2bool == true) {
-		send("New entry:" + "\n" + card.Student + "\n" + card.Port1 + "\n" + card.Port2)
+		send(card.Port1, card.Port2, card.Student)
 	}
 
 }
