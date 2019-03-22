@@ -63,7 +63,7 @@ func send(p1 string, p2 string, student string) {
 		To:      []string{"s3646416@student.rmit.edu.au"},
 		From:    "Inci Keleher <inci.keleher@gmail.com>",
 		Subject: "Test",
-		Text:    []byte("ports: " + p1 + " and " + p2 + "assigned to " + student),
+		Text:    []byte("ports: " + p1 + " and " + p2 + " assigned to " + student),
 		Headers: textproto.MIMEHeader{},
 	}
 	//grab the username and password from the server administrator (you!)
